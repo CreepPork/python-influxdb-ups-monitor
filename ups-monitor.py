@@ -74,7 +74,7 @@ def main():
         for key in status_json:
             status.append(f'{key}={status_json[key]}')
 
-        status = ' '.join(status)
+        status = ','.join(status)
 
         print(f'upses,name={name} {status}')
 
