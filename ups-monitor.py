@@ -167,7 +167,7 @@ def main():
 
         print(f'upses,name={name} {status}')
 
-        if status_json['utility_fail'] != 0 and status_json['battery_low'] != 0:
+        if status_json['utility_fail'] == '0' and status_json['battery_low'] == '0':
             post_to_slack('UPS power low; shutting down servers')
 
             for s in SERVERS:
