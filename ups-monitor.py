@@ -74,10 +74,7 @@ class Ups:
             'battery_low': response[7][1],
             'bypass_active': response[7][2],
             'ups_failed': response[7][3],
-
-            # If this is 0 then UPS is on battery and actively providing power
             'ups_in_standby': response[7][4],
-
             'test_in_progress': response[7][5],
             'shutdown_active': response[7][6],
             'beeper_on': response[7][7]
