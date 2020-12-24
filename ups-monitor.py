@@ -1,12 +1,14 @@
 #!/usr/bin/python3
+import json
 import os
 import sys
-import json
+
 import requests
+import serial
 import urllib3
+
 urllib3.disable_warnings()
 
-import serial
 
 UPS_TO_MONITOR = [
     ('/dev/ttyUSB0', 'MyUPS')
@@ -15,16 +17,17 @@ UPS_TO_MONITOR = [
 SERVER_USERNAME = 'user'
 SERVER_PASSWORD = 'pass'
 
-SERVERS = [ 'https://example-vcenter.com' ]
+SERVERS = ['https://example-vcenter.com']
 
-DELAYED_HOSTS = [ '127.0.0.1' ]
-DELAYED_VMS = [ 'vcenter' ]
+DELAYED_HOSTS = ['127.0.0.1']
+DELAYED_VMS = ['vcenter']
 
 SERVER_SESSION_PATH = 'rest/com/vmware/cis/session'
 SERVER_HOST_PATH = 'rest/vcenter/host'
 SERVER_VM_PATH = 'rest/vcenter/vm'
 
 SLACK_HOOK = 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
+
 
 class Ups:
     def __init__(self, port):
@@ -90,22 +93,23 @@ class Server:
         self.host_addr = server + '/' + SERVER_HOST_PATH
         self.vm_addr = server + '/' + SERVER_VM_PATH
 
-        r = requests.post(self.sess_addr, auth=(username, password), verify=False)
+        r = requests.post(self.sess_addr, auth=(
+            username, password), verify=False)
         self.auth = r.json()['value']
 
     # Logout
     def __del__(self):
         requests.delete(self.sess_addr,
-            headers={'vmware-api-session-id': self.auth},
-            verify=False)
+                        headers={'vmware-api-session-id': self.auth},
+                        verify=False)
 
     def name(self):
         return self.server
 
     def get_hosts(self):
         r = requests.get(self.host_addr,
-            headers={'vmware-api-session-id': self.auth},
-            verify=False)
+                         headers={'vmware-api-session-id': self.auth},
+                         verify=False)
 
         hosts = []
         for host in r.json()['value']:
@@ -118,13 +122,13 @@ class Server:
     def shutdown_host(self, host):
         addr = self.host_addr + '/' + host['host']
         requests.delete(addr,
-            headers={'vmware-api-session-id': self.auth},
-            verify=False)
+                        headers={'vmware-api-session-id': self.auth},
+                        verify=False)
 
     def get_vms(self):
         r = requests.get(self.vm_addr,
-            headers={'vmware-api-session-id': self.auth},
-            verify=False)
+                         headers={'vmware-api-session-id': self.auth},
+                         verify=False)
 
         vms = []
         for vm in r.json()['value']:
@@ -138,14 +142,15 @@ class Server:
     def shutdown_vm(self, vm):
         addr = self.vm_addr + '/' + vm['vm']
         requests.delete(addr,
-            headers={'vmware-api-session-id': self.auth},
-            verify=False)
+                        headers={'vmware-api-session-id': self.auth},
+                        verify=False)
+
 
 def post_to_slack(msg):
     msg_obj = {'text': msg}
     requests.post(SLACK_HOOK,
-        headers={'Content-Type': 'application/json'},
-        data=json.dumps(msg_obj))
+                  headers={'Content-Type': 'application/json'},
+                  data=json.dumps(msg_obj))
 
 
 def main():

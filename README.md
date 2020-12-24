@@ -1,6 +1,6 @@
 # python-influxdb-ups-monitor
 
-A simple Python script that allows for you to monitor your PowerWalker UPS (connected via serial) by returning various parameters that are fed into InfluxDB (Telegraf).
+A simple Python script that allows for you to monitor your PowerWalker UPS (connected via serial) by returning various parameters that are fed into InfluxDB (Telegraf). It will also shutdown all ESXi VMs using vCenter.
 
 ## Installation
 
@@ -11,7 +11,7 @@ pip3 install -r requirements.txt
 
 ## Usage
 
-1. Edit the `ups-monitor.py` file to add your own services to monitor via ping
+1. Edit the `ups-monitor.py` file to add your own services to monitor and return their values
 2. Configure your `telegraf.conf` (see example [here](#example-telegraf-configuration))
 3. It will create a metric called `upses`, use this in your Grafana dashboard
 4. Ready!
@@ -36,6 +36,7 @@ If you discover any security related issues, please e-mail [security@garkaklis.c
 
 - [Ralfs Garkaklis](https://github.com/CreepPork)
 - [Thomas Jensen](https://github.com/thomasjsn)
+- [Rainers Vorza](https://github.com/wexaris)
 - [All Contributors](https://github.com/CreepPork/python-influxdb-ups-monitor/contributors)
 
 ## License
