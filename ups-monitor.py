@@ -90,8 +90,9 @@ class Server:
         self.host_addr = server + '/' + SERVER_HOST_PATH
         self.vm_addr = server + '/' + SERVER_VM_PATH
 
-        r = requests.post(self.sess_addr, auth=(
-            username, password), verify=False)
+        r = requests.post(self.sess_addr,
+                          auth=(username, password),
+                          verify=False)
 
         # Raise exception if authorization failed
         if r.status_code != 200:
@@ -124,8 +125,8 @@ class Server:
     def shutdown_host(self, host):
         addr = self.host_addr + '/' + host['host']
         r = requests.delete(addr,
-                        headers={'vmware-api-session-id': self.auth},
-                        verify=False)
+                            headers={'vmware-api-session-id': self.auth},
+                            verify=False)
 
         # Raise exception if shutdown failed
         if r.status_code != 200:
@@ -149,8 +150,8 @@ class Server:
     def shutdown_vm(self, vm):
         addr = self.vm_addr + '/' + vm['vm']
         r = requests.delete(addr,
-                        headers={'vmware-api-session-id': self.auth},
-                        verify=False)
+                            headers={'vmware-api-session-id': self.auth},
+                            verify=False)
 
 
         # Raise exception if shutdown failed
