@@ -96,7 +96,7 @@ class Server:
 
         # Raise exception if authorization failed
         if r.status_code != 200:
-            raise Exception(server + ': failed to authenticate; ' + r.text)
+            raise Exception(server + ': failed to authenticate; (' + r.status_code + ') ' + r.text)
 
         self.auth = r.json()['value']
 
