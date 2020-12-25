@@ -1,12 +1,14 @@
 #!/usr/bin/python3
+import json
 import os
 import sys
-import json
+
 import requests
+import serial
 import urllib3
+
 urllib3.disable_warnings()
 
-import serial
 
 UPS_TO_MONITOR = [
     ('/dev/ttyUSB0', 'MyUPS')
@@ -15,16 +17,17 @@ UPS_TO_MONITOR = [
 SERVER_USERNAME = 'user'
 SERVER_PASSWORD = 'pass'
 
-SERVERS = [ 'https://example-vcenter.com' ]
+SERVERS = ['https://example-vcenter.com']
 
-DELAYED_HOSTS = [ '127.0.0.1' ]
-DELAYED_VMS = [ 'vcenter' ]
+DELAYED_HOSTS = ['127.0.0.1']
+DELAYED_VMS = ['vcenter']
 
 SERVER_SESSION_PATH = 'rest/com/vmware/cis/session'
 SERVER_HOST_PATH = 'rest/vcenter/host'
 SERVER_VM_PATH = 'rest/vcenter/vm'
 
 SLACK_HOOK = 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
+
 
 class Ups:
     def __init__(self, port):
@@ -71,10 +74,7 @@ class Ups:
             'battery_low': response[7][1],
             'bypass_active': response[7][2],
             'ups_failed': response[7][3],
-
-            # If this is 0 then UPS is on battery and actively providing power
             'ups_in_standby': response[7][4],
-
             'test_in_progress': response[7][5],
             'shutdown_active': response[7][6],
             'beeper_on': response[7][7]
@@ -90,7 +90,8 @@ class Server:
         self.host_addr = server + '/' + SERVER_HOST_PATH
         self.vm_addr = server + '/' + SERVER_VM_PATH
 
-        r = requests.post(self.sess_addr, auth=(username, password), verify=False)
+        r = requests.post(self.sess_addr, auth=(
+            username, password), verify=False)
 
         # Raise exception if authorization failed
         if r.status_code != 200:
@@ -101,16 +102,16 @@ class Server:
     # Logout
     def __del__(self):
         requests.delete(self.sess_addr,
-            headers={'vmware-api-session-id': self.auth},
-            verify=False)
+                        headers={'vmware-api-session-id': self.auth},
+                        verify=False)
 
     def name(self):
         return self.server
 
     def get_hosts(self):
         r = requests.get(self.host_addr,
-            headers={'vmware-api-session-id': self.auth},
-            verify=False)
+                         headers={'vmware-api-session-id': self.auth},
+                         verify=False)
 
         hosts = []
         for host in r.json()['value']:
@@ -123,8 +124,8 @@ class Server:
     def shutdown_host(self, host):
         addr = self.host_addr + '/' + host['host']
         r = requests.delete(addr,
-            headers={'vmware-api-session-id': self.auth},
-            verify=False)
+                        headers={'vmware-api-session-id': self.auth},
+                        verify=False)
 
         # Raise exception if shutdown failed
         if r.status_code != 200:
@@ -133,8 +134,8 @@ class Server:
 
     def get_vms(self):
         r = requests.get(self.vm_addr,
-            headers={'vmware-api-session-id': self.auth},
-            verify=False)
+                         headers={'vmware-api-session-id': self.auth},
+                         verify=False)
 
         vms = []
         for vm in r.json()['value']:
@@ -148,8 +149,9 @@ class Server:
     def shutdown_vm(self, vm):
         addr = self.vm_addr + '/' + vm['vm']
         r = requests.delete(addr,
-            headers={'vmware-api-session-id': self.auth},
-            verify=False)
+                        headers={'vmware-api-session-id': self.auth},
+                        verify=False)
+
 
         # Raise exception if shutdown failed
         if r.status_code != 200:
@@ -159,8 +161,8 @@ class Server:
 def post_to_slack(msg):
     msg_obj = {'text': msg}
     requests.post(SLACK_HOOK,
-        headers={'Content-Type': 'application/json'},
-        data=json.dumps(msg_obj))
+                  headers={'Content-Type': 'application/json'},
+                  data=json.dumps(msg_obj))
 
 
 def main():
@@ -177,7 +179,7 @@ def main():
 
         print(f'upses,name={name} {status}')
 
-        if status_json['utility_fail'] != 0 and status_json['battery_low'] != 0:
+        if status_json['utility_fail'] == '1' and status_json['battery_low'] == '1':
             post_to_slack('UPS power low; shutting down servers')
 
             for s in SERVERS:
