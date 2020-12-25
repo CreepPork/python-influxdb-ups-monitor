@@ -91,6 +91,11 @@ class Server:
         self.vm_addr = server + '/' + SERVER_VM_PATH
 
         r = requests.post(self.sess_addr, auth=(username, password), verify=False)
+
+        # Raise exception if authorization failed
+        if r.status_code != 200:
+            raise Exception(server + ': failed to authenticate; ' + r.text)
+
         self.auth = r.json()['value']
 
     # Logout
@@ -117,9 +122,14 @@ class Server:
 
     def shutdown_host(self, host):
         addr = self.host_addr + '/' + host['host']
-        requests.delete(addr,
+        r = requests.delete(addr,
             headers={'vmware-api-session-id': self.auth},
             verify=False)
+
+        # Raise exception if shutdown failed
+        if r.status_code != 200:
+            raise Exception(self.server +
+                ': failed to shut down ' + host['name'] + '; (' + r.status_code + ') ' + r.text)
 
     def get_vms(self):
         r = requests.get(self.vm_addr,
@@ -137,9 +147,14 @@ class Server:
 
     def shutdown_vm(self, vm):
         addr = self.vm_addr + '/' + vm['vm']
-        requests.delete(addr,
+        r = requests.delete(addr,
             headers={'vmware-api-session-id': self.auth},
             verify=False)
+
+        # Raise exception if shutdown failed
+        if r.status_code != 200:
+            raise Exception(self.server +
+                ': failed to shut down ' + vm['name'] + '; (' + r.status_code + ') ' + r.text)
 
 def post_to_slack(msg):
     msg_obj = {'text': msg}
