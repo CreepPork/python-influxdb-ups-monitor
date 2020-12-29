@@ -3,6 +3,8 @@ import json
 import os
 import sys
 
+from string import Template
+
 import requests
 import serial
 import urllib3
@@ -96,7 +98,12 @@ class Server:
 
         # Raise exception if authorization failed
         if r.status_code != 200:
-            raise Exception(server + ': failed to authenticate; (' + r.status_code + ') ' + r.text)
+            msg = Template('$server: failed to authenticate; ($code) $text').substitute(
+                server=server,
+                code=r.status_code,
+                text=r.text)
+
+            raise Exception(msg)
 
         self.auth = r.json()['value']
 
@@ -132,8 +139,13 @@ class Server:
 
         # Raise exception if shutdown failed
         if r.status_code != 200:
-            raise Exception(self.server +
-                ': failed to shut down ' + vm['name'] + '; (' + r.status_code + ') ' + r.text)
+            msg = Template('$server: failed to shut down $vm; ($code) $text').substitute(
+                server=self.server,
+                vm=vm['name'],
+                code=r.status_code,
+                text=r.text)
+
+            raise Exception(msg)
 
 def post_to_slack(msg):
     msg_obj = {'text': msg}
