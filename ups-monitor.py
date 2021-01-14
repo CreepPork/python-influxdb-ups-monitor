@@ -96,8 +96,7 @@ class Server:
 
         # Raise exception if authorization failed
         if r.status_code != 200:
-            msg = f'{server}: failed to authenticate; ({r.status_code}) {r.text}'
-            raise Exception(msg)
+            raise Exception(f'{server}: failed to authenticate; ({r.status_code}) {r.text}')
 
         self.auth = r.json()['value']
 
@@ -133,8 +132,7 @@ class Server:
 
         # Raise exception if shutdown failed
         if r.status_code != 200:
-            msg = f'{self.server}: failed to shut down {vm["name"]}; ({r.status_code}) {r.text}'
-            raise Exception(msg)
+            raise Exception(f'{self.server}: failed to shut down {vm["name"]}; ({r.status_code}) {r.text}')
 
 def post_to_slack(msg):
     msg_obj = {'text': msg}
