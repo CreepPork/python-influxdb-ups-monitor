@@ -90,8 +90,14 @@ class Server:
         self.host_addr = server + '/' + SERVER_HOST_PATH
         self.vm_addr = server + '/' + SERVER_VM_PATH
 
-        r = requests.post(self.sess_addr, auth=(
-            username, password), verify=False)
+        r = requests.post(self.sess_addr,
+                          auth=(username, password),
+                          verify=False)
+
+        # Raise exception if authorization failed
+        if r.status_code != 200:
+            raise Exception(f'{server}: failed to authenticate; ({r.status_code}) {r.text}')
+
         self.auth = r.json()['value']
 
     # Logout
@@ -102,25 +108,6 @@ class Server:
 
     def name(self):
         return self.server
-
-    def get_hosts(self):
-        r = requests.get(self.host_addr,
-                         headers={'vmware-api-session-id': self.auth},
-                         verify=False)
-
-        hosts = []
-        for host in r.json()['value']:
-            hosts.append({
-                'host': host['host'],
-                'name': host['name']
-            })
-        return hosts
-
-    def shutdown_host(self, host):
-        addr = self.host_addr + '/' + host['host']
-        requests.delete(addr,
-                        headers={'vmware-api-session-id': self.auth},
-                        verify=False)
 
     def get_vms(self):
         r = requests.get(self.vm_addr,
@@ -137,11 +124,15 @@ class Server:
         return vms
 
     def shutdown_vm(self, vm):
-        addr = self.vm_addr + '/' + vm['vm']
-        requests.delete(addr,
-                        headers={'vmware-api-session-id': self.auth},
-                        verify=False)
+        addr = self.vm_addr + '/' + vm['vm'] + '/power/stop'
+        r = requests.post(addr,
+                          headers={'vmware-api-session-id': self.auth},
+                          verify=False)
 
+
+        # Raise exception if shutdown failed
+        if r.status_code != 200:
+            raise Exception(f'{self.server}: failed to shut down {vm["name"]}; ({r.status_code}) {r.text}')
 
 def post_to_slack(msg):
     msg_obj = {'text': msg}
@@ -173,36 +164,21 @@ def main():
                 server = Server(s, SERVER_USERNAME, SERVER_PASSWORD)
 
                 vms = server.get_vms()
-
-                vms_down = True  # Track if VMs are down already
+                delayed_vms = []
 
                 # Shut down VMs
                 # Skip if VM is supposed to be delayed
                 for vm in vms:
                     if vm['name'] in DELAYED_VMS:
+                        delayed_vms.append(vm)
                         continue
 
                     if vm['power_state'] == 'POWERED_ON':
-                        vms_down = False
                         server.shutdown_vm(vm)
 
-                # Only run if VMs are already down
-                if vms_down:
-                    hosts = server.get_hosts()
-                    delayed_hosts = []
-
-                    # Shut down ESXi hosts
-                    # Skip if host is supposed to be delayed
-                    for host in hosts:
-                        if host['name'] in DELAYED_HOSTS:
-                            delayed_hosts.append(host)
-                            continue
-
-                        server.shutdown_host(host)
-
-                    # Shut down delayed hosts
-                    for host in delayed_hosts:
-                        server.shutdown_host(host)
+                # Shut down delayed VMs
+                for vm in delayed_vms:
+                    server.shutdown_vm(vm)
 
 
 if __name__ == "__main__":
