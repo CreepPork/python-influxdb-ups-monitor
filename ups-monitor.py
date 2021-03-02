@@ -101,7 +101,7 @@ class Server:
         self.auth = r.json()['value']
 
     # Logout
-    def __del__(self):
+    def log_out(self):
         requests.delete(self.sess_addr,
                         headers={'vmware-api-session-id': self.auth},
                         verify=False)
@@ -114,14 +114,7 @@ class Server:
                          headers={'vmware-api-session-id': self.auth},
                          verify=False)
 
-        vms = []
-        for vm in r.json()['value']:
-            vms.append({
-                'vm': vm['vm'],
-                'name': vm['name'],
-                'power_state': vm['power_state']
-            })
-        return vms
+        return r.json()['value']
 
     def shutdown_vm(self, vm):
         addr = self.vm_addr + '/' + vm['vm'] + '/power/stop'
@@ -159,8 +152,7 @@ def main():
             post_to_slack('UPS power low; shutting down servers')
 
             for s in SERVERS:
-
-                # Automatically log into server
+                # Automatically logs into server
                 server = Server(s, SERVER_USERNAME, SERVER_PASSWORD)
 
                 vms = server.get_vms()
@@ -171,15 +163,14 @@ def main():
                 for vm in vms:
                     if vm['name'] in DELAYED_VMS:
                         delayed_vms.append(vm)
-                        continue
-
-                    if vm['power_state'] == 'POWERED_ON':
+                    elif vm['power_state'] == 'POWERED_ON':
                         server.shutdown_vm(vm)
 
                 # Shut down delayed VMs
                 for vm in delayed_vms:
                     server.shutdown_vm(vm)
 
+                server.log_out()
 
 if __name__ == "__main__":
     sys.exit(main())
