@@ -114,14 +114,7 @@ class Server:
                          headers={'vmware-api-session-id': self.auth},
                          verify=False)
 
-        vms = []
-        for vm in r.json()['value']:
-            vms.append({
-                'vm': vm['vm'],
-                'name': vm['name'],
-                'power_state': vm['power_state']
-            })
-        return vms
+        return r.json()['value']
 
     def shutdown_vm(self, vm):
         addr = self.vm_addr + '/' + vm['vm'] + '/power/stop'
