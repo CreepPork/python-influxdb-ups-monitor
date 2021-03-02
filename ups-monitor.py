@@ -152,8 +152,7 @@ def main():
             post_to_slack('UPS power low; shutting down servers')
 
             for s in SERVERS:
-
-                # Automatically log into server
+                # Automatically logs into server
                 server = Server(s, SERVER_USERNAME, SERVER_PASSWORD)
 
                 vms = server.get_vms()
@@ -164,9 +163,7 @@ def main():
                 for vm in vms:
                     if vm['name'] in DELAYED_VMS:
                         delayed_vms.append(vm)
-                        continue
-
-                    if vm['power_state'] == 'POWERED_ON':
+                    elif vm['power_state'] == 'POWERED_ON':
                         server.shutdown_vm(vm)
 
                 # Shut down delayed VMs
