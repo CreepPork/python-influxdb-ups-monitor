@@ -101,7 +101,7 @@ class Server:
         self.auth = r.json()['value']
 
     # Logout
-    def __del__(self):
+    def log_out(self):
         requests.delete(self.sess_addr,
                         headers={'vmware-api-session-id': self.auth},
                         verify=False)
@@ -180,6 +180,7 @@ def main():
                 for vm in delayed_vms:
                     server.shutdown_vm(vm)
 
+                server.log_out()
 
 if __name__ == "__main__":
     sys.exit(main())
