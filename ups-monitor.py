@@ -109,8 +109,9 @@ class Server:
     def name(self):
         return self.server
 
-    def get_vms(self):
-        r = requests.get(self.vm_addr,
+    def get_live_vms(self):
+        addr = self.vm_addr + '?power_states=POWERED_ON'
+        r = requests.get(addr,
                          headers={'vmware-api-session-id': self.auth},
                          verify=False)
 
@@ -151,23 +152,24 @@ def main():
             post_to_slack('UPS power low; shutting down servers')
 
             for s in SERVERS:
-                # Automatically logs into server
+                # Automatically log into server
                 server = Server(s, SERVER_USERNAME, SERVER_PASSWORD)
 
-                vms = server.get_vms()
-                delayed_vms = []
+                # Get list of powered on VMs
+                vms = server.get_live_vms()
 
-                # Shut down VMs
-                # Skip if VM is supposed to be delayed
+                shutdown_delayed = True
+
+                # Send shutdown message to non-delayed VMs
                 for vm in vms:
-                    if vm['name'] in DELAYED_VMS:
-                        delayed_vms.append(vm)
-                    elif vm['power_state'] == 'POWERED_ON':
+                    if vm['name'] not in DELAYED_VMS:
                         server.shutdown_vm(vm)
+                        shutdown_delayed = False
 
-                # Shut down delayed VMs
-                for vm in delayed_vms:
-                    server.shutdown_vm(vm)
+                # Send shutdown message to delayed VMs
+                if shutdown_delayed:
+                    for vm in vms:
+                        server.shutdown_vm(vm)
 
                 server.log_out()
 
