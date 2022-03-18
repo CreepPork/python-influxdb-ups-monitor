@@ -22,9 +22,9 @@ SERVERS = ['https://example-vcenter.com']
 DELAYED_HOSTS = ['127.0.0.1']
 DELAYED_VMS = ['vcenter']
 
-SERVER_SESSION_PATH = 'rest/com/vmware/cis/session'
-SERVER_HOST_PATH = 'rest/vcenter/host'
-SERVER_VM_PATH = 'rest/vcenter/vm'
+SERVER_SESSION_PATH = 'api/session'
+SERVER_HOST_PATH = 'api/vcenter/host'
+SERVER_VM_PATH = 'api/vcenter/vm'
 
 SLACK_HOOK = 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
 
@@ -95,10 +95,10 @@ class Server:
                           verify=False)
 
         # Raise exception if authorization failed
-        if r.status_code != 200:
+        if 200 > r.status_code > 300:
             raise Exception(f'{server}: failed to authenticate; ({r.status_code}) {r.text}')
 
-        self.auth = r.json()['value']
+        self.auth = r.json()
 
     # Logout
     def log_out(self):
@@ -114,17 +114,16 @@ class Server:
                          headers={'vmware-api-session-id': self.auth},
                          verify=False)
 
-        return r.json()['value']
+        return r.json()
 
     def shutdown_vm(self, vm):
-        addr = self.vm_addr + '/' + vm['vm'] + '/power/stop'
+        addr = self.vm_addr + '/' + vm['vm'] + '/guest/power?action=shutdown'
         r = requests.post(addr,
                           headers={'vmware-api-session-id': self.auth},
                           verify=False)
 
-
         # Raise exception if shutdown failed
-        if r.status_code != 200:
+        if 200 > r.status_code > 300:
             raise Exception(f'{self.server}: failed to shut down {vm["name"]}; ({r.status_code}) {r.text}')
 
 def post_to_slack(msg):
