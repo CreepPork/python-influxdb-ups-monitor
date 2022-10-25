@@ -160,7 +160,7 @@ def monitor():
         print(f'upses,name={name} {status}')
 
         if status_json['utility_fail'] == '1' and status_json['battery_low'] == '1':
-            log_all(f'UPS power low (battery voltage - {status_json["battery_voltage"]}); shutting down servers')
+            log_all(f'UPS power low (voltage={status_json["battery_voltage"]}, load={status_json["output_current_percentage"]}); shutting down servers')
 
             for s in SERVERS:
                 # Automatically log into server
