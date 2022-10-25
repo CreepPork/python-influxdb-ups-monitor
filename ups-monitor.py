@@ -28,6 +28,8 @@ SERVER_VM_PATH = 'api/vcenter/vm'
 
 SLACK_HOOK = 'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX'
 
+LOGFILE_PATH = '/var/log/ups-monitor.log'
+
 
 class Ups:
     def __init__(self, port):
@@ -127,14 +129,23 @@ class Server:
         if 200 > r.status_code > 300:
             raise Exception(f'{self.server}: failed to shut down {vm["name"]}; ({r.status_code}) {r.text}')
 
+def log_to_file(msg):
+    f = open(LOGFILE_PATH, 'a')
+    f.write(msg)
+    f.close()
+
 def post_to_slack(msg):
     msg_obj = {'text': msg}
     requests.post(SLACK_HOOK,
                   headers={'Content-Type': 'application/json'},
                   data=json.dumps(msg_obj))
 
+def log_all(msg):
+    print(msg)
+    log_to_file(msg)
+    post_to_slack(msg)
 
-def main():
+def monitor():
     for (port, name) in UPS_TO_MONITOR:
         ups = Ups(port)
 
@@ -149,11 +160,13 @@ def main():
         print(f'upses,name={name} {status}')
 
         if status_json['utility_fail'] == '1' and status_json['battery_low'] == '1':
-            post_to_slack('UPS power low; shutting down servers')
+            log_all(f'UPS power low (voltage={status_json["battery_voltage"]}, load={status_json["output_current_percentage"]}); shutting down servers')
 
             for s in SERVERS:
                 # Automatically log into server
                 server = Server(s, SERVER_USERNAME, SERVER_PASSWORD)
+
+                log_all(f'Connected to server: {s}')
 
                 # Get list of powered on VMs
                 vms = server.get_live_vms()
@@ -163,15 +176,26 @@ def main():
                 # Send shutdown message to non-delayed VMs
                 for vm in vms:
                     if vm['name'] not in DELAYED_VMS:
+                        log_all(f'Shutting down {vm["name"]}')
                         server.shutdown_vm(vm)
                         shutdown_delayed = False
 
                 # Send shutdown message to delayed VMs
                 if shutdown_delayed:
                     for vm in vms:
+                        log_all(f'Shutting down {vm["name"]}')
                         server.shutdown_vm(vm)
 
                 server.log_out()
+
+def main():
+    try:
+        monitor()
+        return 0
+    except Exception as e:
+        log_all(str(e))
+        return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())
